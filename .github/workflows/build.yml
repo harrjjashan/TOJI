@@ -1,38 +1,13 @@
-name: Build TOJI APK
-
-on:
-  workflow_dispatch:
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Extract TOJI project
-        run: |
-          unzip -q TOJI_AndroidIDE_V2.zip -d extracted
-          find extracted -maxdepth 3 -type f | head -50
-
-      - name: Set up Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
-
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
-
       - name: Build APK
-        working-directory: extracted
+        shell: bash
         run: |
-          chmod +x gradlew
-          ./gradlew assembleDebug
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: TOJI-debug-APK
-          path: extracted/**/build/outputs/apk/**/*.apk
+          GRADLEW=$(find extracted -type f -name gradlew -print -quit)
+          if [ -z "$GRADLEW" ]; then
+            echo "ERROR: gradlew was not found inside ZIP"
+            find extracted -maxdepth 5 -print
+            exit 1
+          fi
+          PROJECT_DIR=$(dirname "$GRADLEW")
+          chmod +x "$GRADLEW"
+          cd "$PROJECT_DIR"
+          ./gradlew assembleDebug --no-daemon
